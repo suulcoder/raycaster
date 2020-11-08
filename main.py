@@ -3,9 +3,10 @@ from pygame.locals import *
 from math import *
 
 import random
- 
-pygame.init()
 
+os.getcwd()
+pygame.init()
+pygame.mixer.init() 
 ####------Colours------####
 BLACK     = (  0,   0,   0)
 BLUE      = (  0,   0, 255)
@@ -19,15 +20,18 @@ BRIGHT_RED = (255,0,0)
 BRIGHT_GREEN = (0,255,0)
 ####-------------------####
 
-block_color = (53,115,255)
+block_color = (0,115,205)
 
+button_sound = pygame.mixer.Sound('button.wav')
+walking_sound = pygame.mixer.Sound('walking.wav')
+free_channel = pygame.mixer.find_channel()
 
 WIDTH    = 1360
 HEIGHT   = 768
 map_size = int((WIDTH / 680) * 64)
 
 CLOCK    = pygame.time.Clock()
-FPS      = 60
+FPS      = 60000
 SCREEN   = pygame.display.set_mode((WIDTH,HEIGHT))
 pygame.display.set_caption("Raycaster")
 
@@ -36,7 +40,7 @@ floor_colour   = BLACK
 ceiling_colour = DARKRED
 
 rotate_speed   = 0.03
-move_speed     = 0.15
+move_speed     = 0.25
 strafe_speed   = 0.04
 wall_height    = 1.27
 resolution     = 6 #Pixels per line
@@ -55,7 +59,7 @@ mira = pygame.image.load('./mira.png')
 class Raycaster(object):
     def __init__(self, width, heigth):
         self.width = width
-        self.heigth = heigth       
+        self.heigth = heigth     
 
     def point(self, x, y, c = None):
       SCREEN.set_at((x, y), c)
@@ -76,6 +80,7 @@ class Raycaster(object):
             pygame.draw.rect(SCREEN, ac,(x,y,w,h))
 
             if click[0] == 1 and action != None:
+                pygame.mixer.Sound.play(button_sound)
                 action()         
         else:
             pygame.draw.rect(SCREEN, ic,(x,y,w,h))
@@ -96,7 +101,6 @@ class Raycaster(object):
         SCREEN.blit(TextSurf, TextRect)
 
     def game_intro(self, game,quit):
-
         intro = True
 
         while intro:
@@ -106,17 +110,22 @@ class Raycaster(object):
                     quit()
                     
             SCREEN.fill(BLACK)
-            self.message("PAINT IT FIRST", 115,(WIDTH/2),(HEIGHT/2), WHITE)
-            self.button("GO!",550,450,100,50,GREEN,BRIGHT_GREEN,game)
-            self.button("Quit",700,450,100,50,RED,BRIGHT_RED,quit)
+            self.message("MEDIEVAL MAZES", 115,(WIDTH/2),(205), WHITE)
+            self.message("As a time travler you end up in 1250, where the people of the crown, acuse you", 30,(WIDTH/2),(315), WHITE)
+            self.message("of betrayal. You only have a gun from your last trip to the early 1940's, but now", 30,(WIDTH/2),(355), WHITE)
+            self.message("the King Arthur has sentenced you to dead, but his daugther claimed for mercy", 30,(WIDTH/2),(395), WHITE)
+            self.message("so they abandoned you in a maze. THE IMPOSSIBLE MAZE. A maze where no one has", 30,(WIDTH/2),(435), WHITE)
+            self.message("come out alive. GET OUT OF THE MAZE, IF YOU WANT TO LIVE.", 30,(WIDTH/2),(475), WHITE)
+            self.button("GO!",550,550,100,50,GREEN,BRIGHT_GREEN,game)
+            self.button("Quit",700,550,100,50,RED,BRIGHT_RED,quit)
 
             pygame.display.update()
             CLOCK.tick(15)
 
     def success(self):
-
         success = True
-
+        pygame.mixer.music.stop()
+        free_channel.stop()
         while success:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -175,6 +184,8 @@ class Raycaster(object):
           self.map.append(list(line))
 
     def game(self):
+        pygame.mixer.music.load('music.mp3')
+        pygame.mixer.music.play(-1)
         map_x, map_y, map_buffer = self.create_level('map')
 
         position_x, position_y    = 7.4442835833842285, 10.119874124901372
@@ -182,9 +193,9 @@ class Raycaster(object):
         direction_x, direction_y     = -0.005715065212402226, 1.2806120950661122
         plane_x, plane_y = -0.5135283099460273, -0.41459459099700735
 
-        SCREEN.fill(BLACK)
         while True:
-            if(position_y>12.5):
+            SCREEN.fill(BLACK)
+            if(position_x>15):
               self.success()
             difference = 0
             for event in pygame.event.get():
@@ -195,6 +206,8 @@ class Raycaster(object):
                     if event.key == K_ESCAPE:
                         self.Quit()
                         return
+                if event.type == pygame.MOUSEMOTION:
+                  difference = (pygame.mouse.get_pos()[0]-632)/100
 
             pygame.draw.rect(SCREEN, ceiling_colour, (0,                       0, WIDTH, (HEIGHT - map_size) / 2))
             pygame.draw.rect(SCREEN,   floor_colour, (0, (HEIGHT - map_size) / 2, WIDTH, (HEIGHT - map_size) / 2))
@@ -288,23 +301,24 @@ class Raycaster(object):
             keys = pygame.key.get_pressed()
 
             if keys[K_w]:
+                free_channel.play(walking_sound,maxtime=6000)
                 if not map_buffer[int(position_x + direction_x * move_speed)][int(position_y)]: position_x += direction_x * move_speed
                 if not map_buffer[int(position_x)][int(position_y+ direction_y * move_speed)]: position_y+= direction_y * move_speed
 
             if keys[K_a]:
+                free_channel.play(walking_sound,maxtime=6000)
                 if not map_buffer[int(position_x + direction_y * strafe_speed)][int(position_y)]: position_x += direction_y * strafe_speed
                 if not map_buffer[int(position_x)][int(position_y- direction_x * strafe_speed)]: position_y-= direction_x * strafe_speed
 
             if keys[K_s]:
+                free_channel.play(walking_sound,maxtime=6000)
                 if not map_buffer[int(position_x - direction_x * move_speed)][int(position_y)]: position_x -= direction_x * move_speed
                 if not map_buffer[int(position_x)][int(position_y- direction_y * move_speed)]: position_y-= direction_y * move_speed
 
             if keys[K_d]:
+                free_channel.play(walking_sound,maxtime=6000)
                 if not map_buffer[int(position_x - direction_y * strafe_speed)][int(position_y)]: position_x -= direction_y * strafe_speed
                 if not map_buffer[int(position_x)][int(position_y+ direction_x * strafe_speed)]: position_y+= direction_x * strafe_speed
-
-            if keys[K_q]: difference = -5
-            if keys[K_e]: difference = 5
 
             if difference != 0:
                 cosrot = cos(difference * rotate_speed)
@@ -316,15 +330,15 @@ class Raycaster(object):
                 plane_x = plane_x * cosrot - plane_y * sinrot
                 plane_y = old    * sinrot + plane_y * cosrot
 
-            self.message("PAINT IT FIRST LAB 1", 50,(WIDTH/2),HEIGHT-100, WHITE)
+            self.message("RUN OUT OF THE MAZE", 50,(WIDTH/2),HEIGHT-100, WHITE)
             self.message("USE w to move up, s to move down, a to move left, d to move right.", 30,(WIDTH/2-50),HEIGHT-70, WHITE)
-            self.message("USE q to turn the head left, e to turn the head right.", 30,(WIDTH/2-50),HEIGHT-45, WHITE)
-            self.message("MOVE FORWARD TO WIN", 30,(WIDTH/2-50),HEIGHT-20, RED)
+            self.message("USE your mouse to turn the head right or left.", 30,(WIDTH/2-50),HEIGHT-45, WHITE)
+            self.message("GET OUT OF THE MAZE TO WIN", 30,(WIDTH/2-50),HEIGHT-20, RED)
+            self.message("Get here!", 20,(WIDTH-65),HEIGHT-15, RED)
+            self.message(str(round(6000/CLOCK.tick(FPS))) + " FPS", 30,(WIDTH-50),50, WHITE)
             self.draw_player(hand,1000 - 256 - 128, 650 - 256)
             self.draw_player(mira,int(WIDTH/2 - 80 ),int(HEIGHT/2 - 100),120,120,512)
             pygame.display.update()
-            CLOCK.tick(FPS)
-
 
 def main():
     r = Raycaster(21, 22) 
